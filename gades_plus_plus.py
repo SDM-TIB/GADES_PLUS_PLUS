@@ -17,17 +17,36 @@ MATRIX_FILE = "matrix.txt"
 ENTITIES_FILE = "entities.txt"
 
 
-class Entity:
+class Entity:    
     ids = None
+    monthsInTreatment = None
+
     ecog = []
     biopsy = []
     stage = []
-    diagnosisAge = None
-    monthsInTreatment = None
+    drugs = []
+    comorbidities = []
+    chemotherapyList = []
+    tkiList = []
+    immunotherapyList = []
+
+    immunotherapy = False
+    chemotherapy = False
+    tki = False
+    surgery = False
+    antiangiogenic = False
+    radiationtherapy = False
+    
+    systemicProgression = False
+    localProgression = False
+    brainMetastasis = False
     
     def __init__(self, id):
         self.ids = id
         
+    def __str__(self):
+        return "++++++++++++\nPatient: "+self.ids+"\n"+str(self.comorbidities)+"\t"+str(self.drugs)+"\t"+str(self.chemotherapy)+"\t"+str(self.chemotherapyList)+"\t"+str(self.tki)+"\t"+str(self.tkiList)+"\t"+str(self.immunotherapy)+"\t"+str(self.immunotherapyList)+"\t"+str(self.antiangiogenic)+"\t"+str(self.radiationtherapy)+"\t"+str(self.surgery)+"\t"+str(self.systemicProgression)+"\t"+str(self.localProgression)+"\t"+str(self.brainMetastasis)+"\t"+str(self.ecog)+"\t"+str(self.stage)+"\t"+str(self.biopsy)+"\t"+str(self.monthsInTreatment)
+
 def load_nt_file(graph, filename):
     graph.parse(filename, format="nt")
     print("File with NT "+filename+" loaded!")
@@ -140,10 +159,6 @@ def similarity(e1, e2):
         biopsy = sim_jaccard(e1.biopsy, e2.biopsy)
     else:
         biopsy = 0.0
-    if e1.diagnosisAge != 0 or e2.diagnosisAge != 0:
-        dage = sim_dates(e1.diagnosisAge, e2.diagnosisAge)
-    else:
-        dage = 0
     if e1.monthsInTreatment > 0.0 or e2.monthsInTreatment > 0.0:
         months = sim_dates(e1.monthsInTreatment, e2.monthsInTreatment)
     else:
@@ -260,7 +275,7 @@ def compute_all_similarities(d_entities):
         uri1 = patient_id_list[i]
         e1 = d_entities[uri1]
         for j in range(i, n):
-            if cont > 0 and cont % 10000 == 0:
+            if cont > 0 and cont % 10 == 0:
                 print("\nNumber of pairs so far: "+str(cont))
             uri2 = patient_id_list[j]
             e2 = d_entities[uri2]
@@ -293,12 +308,6 @@ def get_patient_data(graph):
                 entity.stage = string_to_list(str(o))
             else:
                 entity.stage = []
-        elif str(p) == DIAG_AGE:
-            entity = d_entities[subject]
-            if str(o) != 'null':
-                entity.diagnosisAge = max(0, int(str(o)))
-            else:
-                entity.diagnosisAge = 0
         elif str(p) == BIOPSY:
             entity = d_entities[subject]
             if str(o) != 'null':
@@ -322,6 +331,41 @@ def get_patient_data(graph):
             pass
     return d_entities
 
+def load_patients_from_file(filename):
+    with open(filename) as fd:
+        header = fd.readline().rstrip().split("\t")
+        print(header)
+        print("Number of concepts: "+str(len(header)))
+        d_entities = []
+        for line in fd:
+            tok = line.rstrip().split("\t")
+            #assert( len(header) == len(tok) )
+            if len(header) != len(tok):
+                print(len(header), len(tok))
+                sys.exit(1)
+            entity = Entity(tok[0])
+            entity.comorbidities = string_to_list(tok[2])
+            entity.drugs = string_to_list(tok[3])
+            entity.chemotherapy = True if tok[4] == "TRUE" else False
+            entity.chemotherapyList = string_to_list(tok[5])
+            entity.tki = True if tok[7] == "TRUE" else False
+            entity.tkiList = string_to_list(tok[6])
+            entity.immunotherapy = True if tok[7] == "TRUE" else False
+            entity.immunotherapyList = string_to_list(tok[8])
+            entity.antiangiogenic = True if tok[9] == "TRUE" else False
+            entity.radiationtherapy = True if tok[10] == "TRUE" else False
+            entity.surgery = True if tok[11] == "TRUE" else False
+            entity.systemicProgression = True if tok[12] == "TRUE" else False
+            entity.localProgression = True if tok[13] == "TRUE" else False
+            entity.brainMetastasis = True if tok[14] == "TRUE" else False
+            entity.ecog = string_to_list(tok[15])
+            entity.stage = string_to_list(tok[16])
+            entity.biopsy = string_to_list(tok[17])
+            entity.monthsInTreatment = int(tok[18])
+            print(entity)
+            d_entities.append(entity)
+        return d_entities
+        
 #def run_all_gades_plus_plus(nt_filename):
 def run_all_gades_plus_plus(graph):
     #patients = get_data_patients(args[0])
@@ -337,6 +381,7 @@ def run_all_gades_plus_plus(graph):
     print("Done Gades Plus Plus")
 
 def main(*args):
+    """"
     #patients = get_data_patients(args[0])
     graph = load_molecules(args[0])
     d_patients = get_patient_data(graph)
@@ -347,6 +392,8 @@ def main(*args):
     #create_result_csv_file(similarities, args[1])
     print("Building the semEP-Node input files")
     create_semEP_node_input(similarities)
+    """
+    d_entities = load_patients_from_file(args[0])
     print("Done Gades Plus Plus")
 
 if __name__ == "__main__":
